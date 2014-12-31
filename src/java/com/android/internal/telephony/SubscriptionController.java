@@ -172,11 +172,6 @@ public class SubscriptionController extends ISub.Stub {
     private DdsScheduler mScheduler;
     private DdsSchedulerAc mSchedulerAc;
 
-    // Dummy subId is used when no SIMs present on device
-    // with MSIM configuration and this is corresponds
-    // to phoneId 0.
-    private static final int DUMMY_SUB_ID = -1;
-
     public static SubscriptionController init(Phone phone) {
         synchronized (SubscriptionController.class) {
             if (sInstance == null) {
@@ -220,7 +215,8 @@ public class SubscriptionController extends ISub.Stub {
         logdl("[SubscriptionController] init by Context");
         mDataConnectionHandler = new DataConnectionHandler();
 
-        mScheduler = DdsScheduler.getInstance();
+        mScheduler = DdsScheduler.makeDdsScheduler();
+        mScheduler.start();
 
         mSchedulerAc = new DdsSchedulerAc();
         mSchedulerAc.connect(mContext, mDataConnectionHandler, mScheduler.getHandler());
@@ -682,7 +678,6 @@ public class SubscriptionController extends ISub.Stub {
                         if (simCount == 1) {
                             logdl("[addSubInfoRecord] one sim set defaults to subId=" + subId);
                             setDefaultDataSubId(subId);
-                            setDataSubId(subId);
                             setDefaultSmsSubId(subId);
                             setDefaultVoiceSubId(subId);
                         }
@@ -1260,25 +1255,15 @@ public class SubscriptionController extends ISub.Stub {
     }
 
 
-    private void updateDataSubId(AsyncResult ar) {
-        Long subId = (Long)ar.result;
-        int reqStatus = PhoneConstants.FAILURE;
-
-        logd(" updateDataSubId,  subId=" + subId + " exception " + ar.exception);
-        // Update newDds in database if the DDS request succeeded.
-        if (ar.exception == null) {
-            setDataSubId(subId);
-            reqStatus = PhoneConstants.SUCCESS;
-        }
+    private void updateDataSubId(long subId) {
+        logd(" updateDataSubId,  subId=" + subId);
+        Settings.Global.putLong(mContext.getContentResolver(),
+                Settings.Global.MULTI_SIM_DATA_CALL_SUBSCRIPTION, subId);
         mScheduler.updateCurrentDds(null);
-        broadcastDefaultDataSubIdChanged(reqStatus);
+        broadcastDefaultDataSubIdChanged(subId);
 
         // FIXME is this still needed?
         updateAllDataConnectionTrackers();
-    }
-    public void setDataSubId(long subId) {
-        Settings.Global.putLong(mContext.getContentResolver(),
-                Settings.Global.MULTI_SIM_DATA_CALL_SUBSCRIPTION, subId);
     }
 
     private void updateAllDataConnectionTrackers() {
@@ -1286,18 +1271,17 @@ public class SubscriptionController extends ISub.Stub {
         int len = sProxyPhones.length;
         logdl("[updateAllDataConnectionTrackers] sProxyPhones.length=" + len);
         for (int phoneId = 0; phoneId < len; phoneId++) {
+            logdl("[updateAllDataConnectionTrackers] phoneId=" + phoneId);
             sProxyPhones[phoneId].updateDataConnectionTracker();
         }
     }
 
-    private void broadcastDefaultDataSubIdChanged(int status) {
+    private void broadcastDefaultDataSubIdChanged(long subId) {
         // Broadcast an Intent for default data sub change
-        logdl("[broadcastDefaultDataSubIdChanged] subId = " + getDefaultDataSubId()
-                 + " status " + status);
+        logdl("[broadcastDefaultDataSubIdChanged] subId=" + subId);
         Intent intent = new Intent(TelephonyIntents.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED);
         intent.addFlags(Intent.FLAG_RECEIVER_REPLACE_PENDING);
-        intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, getDefaultDataSubId());
-        intent.putExtra(TelephonyIntents.EXTRA_RESULT, status);
+        intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, subId);
         mContext.sendStickyBroadcastAsUser(intent, UserHandle.ALL);
     }
 
@@ -1384,8 +1368,9 @@ public class SubscriptionController extends ISub.Stub {
             switch (msg.what) {
                 case EVENT_SET_DEFAULT_DATA_DONE:{
                     AsyncResult ar = (AsyncResult) msg.obj;
-                    logd("EVENT_SET_DEFAULT_DATA_DONE subId:" + (Long)ar.result);
-                    updateDataSubId(ar);
+                    Long subId = (Long)ar.result;
+                    logd("EVENT_SET_DEFAULT_DATA_DONE subId:" + subId);
+                    updateDataSubId(subId);
                     break;
                 }
             }
@@ -1630,12 +1615,6 @@ public class SubscriptionController extends ISub.Stub {
             logd("updateUserPrefs: subscription are not avaiable dds = " + getDefaultDataSubId()
                      + " voice = " + getDefaultVoiceSubId() + " sms = " + getDefaultSmsSubId() +
                      " setDDs = " + setDds);
-            // If no SIM cards present on device, set dummy subId
-            // as data/sms/voice preferred subId.
-            setDefaultSubId(DUMMY_SUB_ID);
-            setDefaultVoiceSubId(DUMMY_SUB_ID);
-            setDefaultSmsSubId(DUMMY_SUB_ID);
-            setDataSubId(DUMMY_SUB_ID);
             return;
         }
 
@@ -1658,10 +1637,6 @@ public class SubscriptionController extends ISub.Stub {
 
         //if there are no activated subs available, no need to update. EXIT.
         if (mNextActivatedSub == null) return;
-
-        if (getSubState(getDefaultSubId()) == SubscriptionManager.INACTIVE) {
-            setDefaultSubId(mNextActivatedSub.subId);
-        }
 
         long ddsSubId = getDefaultDataSubId();
         int ddsSubState = getSubState(ddsSubId);

@@ -100,6 +100,12 @@ public class UiccCard {
 
     int mSlotId;
 
+    public UiccCard(Context c, CommandsInterface ci, IccCardStatus ics) {
+        if (DBG) log("Creating");
+        mCardState = ics.mCardState;
+        update(c, ci, ics);
+    }
+
     public UiccCard(Context c, CommandsInterface ci, IccCardStatus ics, int slotId) {
         mCardState = ics.mCardState;
         mSlotId = slotId;
@@ -414,12 +420,6 @@ public class UiccCard {
     public PinState getUniversalPinState() {
         synchronized (mLock) {
             return mUniversalPinState;
-        }
-    }
-
-    public int getSlotId() {
-        synchronized (mLock) {
-            return mSlotId;
         }
     }
 
