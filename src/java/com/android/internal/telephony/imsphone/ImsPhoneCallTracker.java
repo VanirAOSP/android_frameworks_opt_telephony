@@ -1509,12 +1509,6 @@ public final class ImsPhoneCallTracker extends CallTracker {
         public void onImsDisconnected(ImsReasonInfo imsReasonInfo) {
             if (DBG) log("onImsDisconnected imsReasonInfo=" + imsReasonInfo);
             mPhone.setServiceState(ServiceState.STATE_OUT_OF_SERVICE);
-        }
-
-        @Override
-        public void onImsDisconnected() {
-            if (DBG) log("onImsDisconnected");
-            mPhone.setServiceState(ServiceState.STATE_OUT_OF_SERVICE);
             mPhone.notifyVoLteServiceStateChanged(new VoLteServiceState(
                 VoLteServiceState.IMS_UNREGISTERED));
             mPhone.setImsRegistered(false);
@@ -1524,6 +1518,8 @@ public final class ImsPhoneCallTracker extends CallTracker {
         public void onImsProgressing() {
             if (DBG) log("onImsProgressing");
             mPhone.setServiceState(ServiceState.STATE_OUT_OF_SERVICE);
+            mPhone.notifyVoLteServiceStateChanged(new VoLteServiceState(
+                VoLteServiceState.IMS_UNREGISTERED));
             mPhone.setImsRegistered(false);
         }
 
