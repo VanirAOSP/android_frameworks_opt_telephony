@@ -1709,6 +1709,14 @@ public final class DcTracker extends DcTrackerBase {
         setupDataOnConnectableApns(Phone.REASON_NV_READY);
     }
 
+    private void onSimNotReady() {
+        if (DBG) log("onSimNotReady");
+
+        cleanUpAllConnections(true, Phone.REASON_SIM_NOT_READY);
+        mAllApnSettings = null;
+        mAutoAttachOnCreationConfig = false;
+    }
+
     @Override
     protected void onSetDependencyMet(String apnType, boolean met) {
         // don't allow users to tweak hipri to work around default dependency not met
@@ -3106,6 +3114,8 @@ public final class DcTracker extends DcTrackerBase {
                 mIccRecords.set(newIccRecords);
                 newIccRecords.registerForRecordsLoaded(
                         this, DctConstants.EVENT_RECORDS_LOADED, null);
+            } else {
+                onSimNotReady();
             }
             // Records changed -> return true
             result = true;
