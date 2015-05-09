@@ -190,6 +190,10 @@ public final class DcTracker extends DcTrackerBase {
 
     private CdmaApnProfileTracker mOmhApt;
 
+    /* MMS Data Profile Device Override */
+    private static final int MMS_DATA_PROFILE = SystemProperties.getInt(
+            "ro.telephony.mms_data_profile", RILConstants.DATA_PROFILE_DEFAULT);
+
     //***** Constructor
     public DcTracker(PhoneBase p) {
         super(p);
@@ -3063,6 +3067,8 @@ public final class DcTracker extends DcTrackerBase {
             return RILConstants.DATA_PROFILE_DEFAULT; // DEFAULT for now
         } else if (TextUtils.equals(apnType, PhoneConstants.APN_TYPE_DUN)) {
             return RILConstants.DATA_PROFILE_TETHERED;
+        } else if (TextUtils.equals(apnType, PhoneConstants.APN_TYPE_MMS)) {
+            return MMS_DATA_PROFILE;
         } else {
             return RILConstants.DATA_PROFILE_DEFAULT;
         }
