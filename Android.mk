@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # This is NOT legacy
-ifeq ($(SAD_RIL_HACK), )
+ifeq ($(SAD_RIL_HACK), true )
 
 # enable this build only when platform library is available
 ifeq ($(TARGET_BUILD_JAVA_SUPPORT_LEVEL),platform)
