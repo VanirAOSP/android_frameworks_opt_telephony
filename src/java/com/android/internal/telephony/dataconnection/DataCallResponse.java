@@ -23,6 +23,7 @@ import android.net.NetworkUtils;
 import android.net.RouteInfo;
 import android.os.SystemProperties;
 import android.telephony.Rlog;
+import android.content.res.Resources;
 
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.dataconnection.DcFailCause;
@@ -161,6 +162,11 @@ public class DataCallResponse {
                             if (DBG) Rlog.d(LOG_TAG, "addr/pl=" + addr + "/" + addrPrefixLen);
                             la = new LinkAddress(ia, addrPrefixLen);
                             linkProperties.addLinkAddress(la);
+                            // PPP: Use client ip address as default gateway
+                            Resources r = Resources.getSystem();
+                            if (r.getBoolean(com.android.internal.R.bool.config_pppUseClientIp)) {
+                                linkProperties.addRoute(new RouteInfo(ia));
+                            }
                         }
                     }
                 } else {
@@ -202,6 +208,9 @@ public class DataCallResponse {
                 } else {
                     throw new UnknownHostException("Empty dns response and no system default dns");
                 }
+
+                if (r.getBoolean(com.android.internal.R.bool.config_pppUseClientIp)) {
+                } else {
 
                 // set gateways
                 if ((gateways == null) || (gateways.length == 0)) {
