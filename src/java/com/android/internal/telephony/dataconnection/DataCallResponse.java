@@ -23,6 +23,7 @@ import android.net.NetworkUtils;
 import android.net.RouteInfo;
 import android.os.SystemProperties;
 import android.telephony.Rlog;
+import android.content.res.Resources;
 
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.dataconnection.DcFailCause;
@@ -30,6 +31,8 @@ import com.android.internal.telephony.dataconnection.DcFailCause;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+
+import com.android.internal.R;
 
 /**
  * This is RIL_Data_Call_Response_v5 from ril.h
@@ -116,6 +119,10 @@ public class DataCallResponse {
 
     public SetupResult setLinkProperties(LinkProperties linkProperties,
             boolean okToUseSystemPropertyDns) {
+
+        final boolean pppIgnoreGatewayParams =
+                Resources.getSystem().getBoolean(R.bool.config_telephony_pppUseClientIp);
+
         SetupResult result;
 
         // Start with clean network properties and if we have
@@ -161,6 +168,9 @@ public class DataCallResponse {
                             if (DBG) Rlog.d(LOG_TAG, "addr/pl=" + addr + "/" + addrPrefixLen);
                             la = new LinkAddress(ia, addrPrefixLen);
                             linkProperties.addLinkAddress(la);
+                            if (pppIgnoreGatewayParams) {
+                                linkProperties.addRoute(new RouteInfo(ia));
+                            }
                         }
                     }
                 } else {
@@ -203,26 +213,28 @@ public class DataCallResponse {
                     throw new UnknownHostException("Empty dns response and no system default dns");
                 }
 
-                // set gateways
-                if ((gateways == null) || (gateways.length == 0)) {
-                    String sysGateways = SystemProperties.get(propertyPrefix + "gw");
-                    if (sysGateways != null) {
-                        gateways = sysGateways.split(" ");
-                    } else {
-                        gateways = new String[0];
+                if (!pppIgnoreGatewayParams) {
+                    // set gateways
+                    if ((gateways == null) || (gateways.length == 0)) {
+                        String sysGateways = SystemProperties.get(propertyPrefix + "gw");
+                        if (sysGateways != null) {
+                            gateways = sysGateways.split(" ");
+                        } else {
+                            gateways = new String[0];
+                        }
                     }
-                }
-                for (String addr : gateways) {
-                    addr = addr.trim();
-                    if (addr.isEmpty()) continue;
-                    InetAddress ia;
-                    try {
-                        ia = NetworkUtils.numericToInetAddress(addr);
-                    } catch (IllegalArgumentException e) {
-                        throw new UnknownHostException("Non-numeric gateway addr=" + addr);
+                    for (String addr : gateways) {
+                        addr = addr.trim();
+                        if (addr.isEmpty()) continue;
+                        InetAddress ia;
+                        try {
+                            ia = NetworkUtils.numericToInetAddress(addr);
+                        } catch (IllegalArgumentException e) {
+                            throw new UnknownHostException("Non-numeric gateway addr=" + addr);
+                        }
+                        // Allow 0.0.0.0 or :: as a gateway; this indicates a point-to-point interface.
+                        linkProperties.addRoute(new RouteInfo(ia));
                     }
-                    // Allow 0.0.0.0 or :: as a gateway; this indicates a point-to-point interface.
-                    linkProperties.addRoute(new RouteInfo(ia));
                 }
 
                 // set interface MTU
