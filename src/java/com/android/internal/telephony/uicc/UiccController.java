@@ -38,9 +38,9 @@ import com.android.internal.telephony.uicc.IccCardApplicationStatus.AppState;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
-import java.util.LinkedList;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.LinkedList;
 
 /**
  * This class is responsible for keeping all knowledge about
