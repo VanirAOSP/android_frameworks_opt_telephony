@@ -48,8 +48,9 @@ import android.telephony.CellLocation;
 import android.telephony.Rlog;
 import android.telephony.ServiceState;
 import android.telephony.SignalStrength;
-import android.telephony.gsm.GsmCellLocation;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
+import android.telephony.gsm.GsmCellLocation;
 import android.text.TextUtils;
 import android.util.EventLog;
 import android.util.TimeUtils;
@@ -65,7 +66,6 @@ import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.RestrictedState;
 import com.android.internal.telephony.ServiceStateTracker;
-import android.telephony.SubscriptionManager;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.dataconnection.DcTrackerBase;
@@ -156,12 +156,6 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
     /** Wake lock used while setting time of day. */
     private PowerManager.WakeLock mWakeLock;
     private static final String WAKELOCK_TAG = "ServiceStateTracker";
-
-    /** Keep track of SPN display rules, so we only broadcast intent if something changes. */
-    private String mCurSpn = null;
-    private String mCurPlmn = null;
-    private boolean mCurShowPlmn = false;
-    private boolean mCurShowSpn = false;
 
     /** Notification type. */
     static final int PS_ENABLED = 1001;            // Access Control blocks data service
@@ -305,18 +299,9 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
                 break;
 
             case EVENT_SIM_READY:
-                // Set the network type, in case the radio does not restore it.
-                int networkType = PhoneFactory.calculatePreferredNetworkType(
-                        mPhone.getContext(), mPhone.getPhoneId());
-                mCi.setPreferredNetworkType(networkType, null);
-
-                boolean skipRestoringSelection = mPhone.getContext().getResources().getBoolean(
-                        com.android.internal.R.bool.skip_restoring_network_selection);
-
-                if (!skipRestoringSelection) {
-                    // restore the previous network selection.
-                    mPhone.restoreSavedNetworkSelection(null);
-                }
+                // Reset the mPreviousSubId so we treat a SIM power bounce
+                // as a first boot.  See b/19194287
+                mOnSubscriptionsChangedListener.mPreviousSubId.set(-1);
                 pollState();
                 // Signal strength polling stops when radio is off
                 queueNextSignalStrengthPoll();
@@ -643,30 +628,7 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
             showSpn = false;
         }
 
-        // Update SPN_STRINGS_UPDATED_ACTION IFF any value changes
-        if (showPlmn != mCurShowPlmn
-                || showSpn != mCurShowSpn
-                || !TextUtils.equals(spn, mCurSpn)
-                || !TextUtils.equals(plmn, mCurPlmn)) {
-            if (DBG) {
-                log(String.format("updateSpnDisplay: changed" +
-                        " sending intent rule=" + rule +
-                        " showPlmn='%b' plmn='%s' showSpn='%b' spn='%s'",
-                        showPlmn, plmn, showSpn, spn));
-            }
-            Intent intent = new Intent(TelephonyIntents.SPN_STRINGS_UPDATED_ACTION);
-            intent.putExtra(TelephonyIntents.EXTRA_SHOW_SPN, showSpn);
-            intent.putExtra(TelephonyIntents.EXTRA_SPN, spn);
-            intent.putExtra(TelephonyIntents.EXTRA_SHOW_PLMN, showPlmn);
-            intent.putExtra(TelephonyIntents.EXTRA_PLMN, plmn);
-            SubscriptionManager.putPhoneIdAndSubIdExtra(intent, mPhone.getPhoneId());
-            mPhone.getContext().sendStickyBroadcastAsUser(intent, UserHandle.ALL);
-        }
-
-        mCurShowSpn = showSpn;
-        mCurShowPlmn = showPlmn;
-        mCurSpn = spn;
-        mCurPlmn = plmn;
+        sendSpnStringsBroadcastIfNeeded(plmn, showPlmn, spn, showSpn);
     }
 
     /**
@@ -908,6 +870,13 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
                 roaming = false;
             } else if (mPhone.isMccMncMarkedAsRoaming(mNewSS.getOperatorNumeric())) {
                 roaming = true;
+            }
+
+            // We can't really be roaming if we're not in service and not registered to an operator
+            // set us to false
+            if (mNewSS.getState() == ServiceState.STATE_OUT_OF_SERVICE &&
+                    mNewSS.getOperatorNumeric() == null) {
+                roaming = false;
             }
 
             mNewSS.setVoiceRoaming(roaming);
@@ -2167,10 +2136,6 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
         pw.println(" mReportedGprsNoReg=" + mReportedGprsNoReg);
         pw.println(" mNotification=" + mNotification);
         pw.println(" mWakeLock=" + mWakeLock);
-        pw.println(" mCurSpn=" + mCurSpn);
-        pw.println(" mCurShowSpn=" + mCurShowSpn);
-        pw.println(" mCurPlmn=" + mCurPlmn);
-        pw.println(" mCurShowPlmn=" + mCurShowPlmn);
         pw.flush();
     }
 

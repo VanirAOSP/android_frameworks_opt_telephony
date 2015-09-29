@@ -233,10 +233,31 @@ public class CDMALTEPhone extends CDMAPhone {
         return false;
     }
 
-    // return IMSI from USIM as subscriber ID.
+    // return IMSI from CSIM as subscriber ID if available, otherwise reads from USIM
     @Override
     public String getSubscriberId() {
-        return (mSimRecords != null) ? mSimRecords.getIMSI() : "";
+        IccRecords r = (mIccRecords != null) ? mIccRecords.get() : null;
+        if (r != null) {
+            String imsi = r.getIMSI();
+            if (!TextUtils.isEmpty(imsi)) {
+                log("IMSI = " + imsi);
+                return imsi;
+            }
+        }
+
+        log("IMSI undefined");
+        return "";
+    }
+
+
+    // fix CTS test expecting IMEI to be used as device ID when in LteOnCdma mode
+    @Override
+    public String getDeviceId() {
+        if (TelephonyManager.getLteOnCdmaModeStatic() == PhoneConstants.LTE_ON_CDMA_TRUE) {
+            return mImei;
+        } else {
+            return super.getDeviceId();
+        }
     }
 
     // return GID1 from USIM
@@ -406,9 +427,12 @@ public class CDMALTEPhone extends CDMAPhone {
     public String getOperatorNumeric() {
         String operatorNumeric = null;
         IccRecords curIccRecords = null;
+
         if (mCdmaSubscriptionSource == CDMA_SUBSCRIPTION_NV) {
-            operatorNumeric = SystemProperties.get("ro.cdma.home.operator.numeric");
-        } else if (mCdmaSubscriptionSource == CDMA_SUBSCRIPTION_RUIM_SIM) {
+            operatorNumeric = SystemProperties.get(PROPERTY_CDMA_HOME_OPERATOR_NUMERIC);
+        }
+
+        if (TextUtils.isEmpty(operatorNumeric)) {
             curIccRecords = mSimRecords;
             if (curIccRecords != null) {
                 operatorNumeric = curIccRecords.getOperatorNumeric();
@@ -420,6 +444,7 @@ public class CDMALTEPhone extends CDMAPhone {
                 }
             }
         }
+
         if (operatorNumeric == null) {
             Rlog.e(LOG_TAG, "getOperatorNumeric: Cannot retrieve operatorNumeric:"
                     + " mCdmaSubscriptionSource = " + mCdmaSubscriptionSource + " mIccRecords = "
