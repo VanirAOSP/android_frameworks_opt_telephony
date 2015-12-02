@@ -460,8 +460,7 @@ public class CdmaLteServiceStateTracker extends CdmaServiceStateTracker {
             if ((!hasBrandOverride && (mCi.getRadioState().isOn()) && (mPhone.isEriFileLoaded()) &&
                     (!isRatLte(mSS.getRilVoiceRadioTechnology()) ||
                             mPhone.getContext().getResources().getBoolean(com.android.internal.R.
-                                    bool.config_LTE_eri_for_network_name)) &&
-                                    !mIsSubscriptionFromRuim) || forceEriFromXml) {
+                                    bool.config_LTE_eri_for_network_name))) || forceEriFromXml) {
                 // Only when CDMA is in service, ERI will take effect
                 String eriText = mSS.getOperatorAlphaLong();
                 // Now the CDMAPhone sees the new ServiceState so it can get the
