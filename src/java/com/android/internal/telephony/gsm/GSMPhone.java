@@ -38,7 +38,6 @@ import android.telephony.TelephonyManager;
 
 import com.android.internal.telephony.CallTracker;
 import com.android.internal.telephony.ConfigResourceUtil;
-import com.android.internal.telephony.PhoneFactory;
 
 import android.text.TextUtils;
 import android.telephony.Rlog;
@@ -1933,7 +1932,9 @@ public class GSMPhone extends PhoneBase {
         int nwMode = Phone.PREFERRED_NT_MODE;
         int subId = getSubId();
 
-        nwMode = PhoneFactory.calculatePreferredNetworkType(mContext, subId);
+        nwMode = android.provider.Settings.Global.getInt(mContext.getContentResolver(),
+                    android.provider.Settings.Global.PREFERRED_NETWORK_MODE + subId, nwMode);
+
         Rlog.d(LOG_TAG, "isManualNetSelAllowed in mode = " + nwMode);
         /*
          *  For multimode targets in global mode manual network
