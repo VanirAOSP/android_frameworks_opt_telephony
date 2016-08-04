@@ -595,8 +595,6 @@ public class CdmaServiceStateTracker extends ServiceStateTracker {
         String plmn = mSS.getOperatorAlphaLong();
         boolean showPlmn = false;
 
-        showPlmn = plmn != null;
-
         int subId = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
         int[] subIds = SubscriptionManager.getSubId(mPhone.getPhoneId());
         if (subIds != null && subIds.length > 0) {
@@ -618,6 +616,7 @@ public class CdmaServiceStateTracker extends ServiceStateTracker {
             // would set showPlmn to true only if plmn was not empty, i.e. was not
             // null and not blank. But this would cause us to incorrectly display
             // "No Service". Now showPlmn is set to true for any non null string.
+            showPlmn = plmn != null;
             if (DBG) {
                 log(String.format("updateSpnDisplay: changed sending intent" +
                             " showPlmn='%b' plmn='%s' subId='%d'", showPlmn, plmn, subId));
