@@ -2177,19 +2177,18 @@ public class CdmaServiceStateTracker extends ServiceStateTracker {
 
     private void updateCarrierConfig(){
         ICarrierConfigLoader configLoader =
-            (ICarrierConfigLoader) ServiceManager.getService(Context.CARRIER_CONFIG_SERVICE);
+                (ICarrierConfigLoader) ServiceManager.getService(Context.CARRIER_CONFIG_SERVICE);
 
         if (configLoader != null) {
             try {
                 int phoneId = PhoneFactory.getDefaultPhone().getPhoneId();
-                configLoader.updateConfigForPhoneId(phoneId, IccCardConstants.INTENT_VALUE_ICC_LOADED);
+                configLoader.updateConfigForPhoneId(phoneId,
+                    IccCardConstants.INTENT_VALUE_ICC_LOADED);
                 log("updateCarrierConfig: CarrierConfig Updated for Phone ID " + phoneId);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 loge("updateCarrierConfig: An Error Occurred While Updating the CarrierConfig!", e);
             }
-        }
-        else {
+        } else {
             log("updateCarrierConfig: no carrier config service available");
         }
     }
