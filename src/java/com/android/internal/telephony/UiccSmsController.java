@@ -323,12 +323,6 @@ public class UiccSmsController extends ISms.Stub {
 
             // If reached here and multiple SIMs and subs present, sms sim pick activity is needed
             if (subInfoLength > 0 && telephonyManager.getSimCount() > 1) {
-                final SubscriptionInfoUpdater subscriptionInfoUpdater
-                        = PhoneFactory.getSubscriptionInfoUpdater();
-                if (subscriptionInfoUpdater != null) {
-                    // use the *real* inserted sim count if we can
-                    return subscriptionInfoUpdater.getInsertedSimCount() > 1;
-                }
                 return true;
             }
         }
