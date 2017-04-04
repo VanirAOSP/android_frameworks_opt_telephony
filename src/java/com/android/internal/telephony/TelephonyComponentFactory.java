@@ -152,6 +152,7 @@ public class TelephonyComponentFactory {
     public InboundSmsTracker makeInboundSmsTracker(byte[] pdu, long timestamp, int destPort,
             boolean is3gpp2, String address, String displayAddr, int referenceNumber, int sequenceNumber,
             int messageCount, boolean is3gpp2WapPdu, String messageBody) {
+        Rlog.d(LOG_TAG, "makeInboundSmsTracker");
         return new InboundSmsTracker(pdu, timestamp, destPort, is3gpp2, address, displayAddr,
                 referenceNumber, sequenceNumber, messageCount, is3gpp2WapPdu, messageBody);
     }
