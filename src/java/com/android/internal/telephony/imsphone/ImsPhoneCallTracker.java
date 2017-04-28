@@ -370,6 +370,9 @@ public class ImsPhoneCallTracker extends CallTracker implements ImsPullCall {
         // Send a message to connect to the Ims Service and open a connection through
         // getImsService().
         sendEmptyMessage(EVENT_GET_IMS_SERVICE);
+
+        // Make sure to notify things of starting feature capabilities
+        mPhone.notifyImsFeatureCapabilityChanged(ImsFeatureCapability.newFromBoolArrary(mImsFeatureEnabled));
     }
 
     private PendingIntent createIncomingCallPendingIntent() {

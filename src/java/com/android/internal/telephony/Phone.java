@@ -2970,6 +2970,8 @@ public abstract class Phone extends Handler implements PhoneInternalInterface {
             CallManager.getInstance().registerPhone(mImsPhone);
             mImsPhone.registerForSilentRedial(
                     this, EVENT_INITIATE_SILENT_REDIAL, null);
+            //explicitly inform listeners of ims registration status of updated mImsPhone
+            notifyImsRegisteredChanged();
         } else if (!mImsServiceReady && (mImsPhone != null)) {
             CallManager.getInstance().unregisterPhone(mImsPhone);
             mImsPhone.unregisterForSilentRedial(this);
@@ -2980,6 +2982,8 @@ public abstract class Phone extends Handler implements PhoneInternalInterface {
             // not access functions through NULL pointer.
             //mImsPhone.removeReferences();
             mImsPhone = null;
+            //explicitly inform listeners of ims registration status after disposing mImsPhone
+            notifyImsRegisteredChanged();
         }
     }
 
